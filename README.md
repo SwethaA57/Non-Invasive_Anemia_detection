@@ -71,6 +71,11 @@ The prototype successfully acquired optical signals from the fingertip, estimate
 
 Testing showed consistent operation under controlled measurement conditions. The project demonstrates the potential of low-cost optical sensing for preliminary anemia screening.
 
+## Documentation
+
+[Project Report](MINIPROJECTFINALREPORT.pdf)
+
+[Project Presentation](Final_Review.pptx)
 
 ## Future Work
 
