@@ -1,0 +1,10 @@
+[env:esp32dev] 
+platform= espressif32 
+board = esp32dev 
+framework = arduino 
+upload_speed=115200 
+monitor_speed=115200
+lib_deps = 
+  ada-fruit/Adafruit GFX Li-brary@^1.12.5 
+  sparkfun/Spark-FuMAX3010x Pulse and Proximity Sensor Library@^1.1.2 
+  ada-fruit/Adafruit SSD1306 
