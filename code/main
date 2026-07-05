@@ -1,0 +1,137 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include <MAX30105.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+MAX30105 sensor;
+
+// Button pin
+#define BUTTON_PIN 15
+
+// Function to show message
+void showMessage(String msg) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 20);
+  display.println(msg);
+  display.display();
+}
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  // OLED init
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED not found");
+    while (1);
+  }
+
+  // MAX30102 init
+  if (!sensor.begin(Wire, I2C_SPEED_FAST)) {
+    Serial.println("MAX30102 not found");
+    showMessage("Sensor Error");
+    while (1);
+  }
+
+  sensor.setup();
+
+  showMessage("Push button to\nmeasure Hb");
+}
+
+void loop() {
+
+  // Wait for button press
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    delay(300); // debounce
+
+    showMessage("Measuring...");
+
+    float sumRed = 0;
+    float sumIR = 0;
+    int count = 0;
+
+    unsigned long startTime = millis();
+
+    // Collect data for 7 seconds
+    while (millis() - startTime < 7000) {
+
+      long red = sensor.getRed();
+      long ir  = sensor.getIR();
+
+      // Finger detection
+      if (ir > 50000) {
+        sumRed += red;
+        sumIR  += ir;
+        count++;
+      }
+
+      delay(50);
+    }
+
+    // Avoid division error
+    if (count == 0) {
+      showMessage("Place finger\nproperly");
+      delay(2000);
+      showMessage("Push button to\nmeasure Hb");
+      return;
+    }
+
+    float avgRed = sumRed / count;
+    float avgIR  = sumIR / count;
+
+    float R = (avgRed / avgIR)+0.01;
+    // Hb calculation using calibration equation
+    float Hb = -85 * R + 75;
+    //float Hb = -148.25 * R + 120.98;
+    String status;
+
+    // Female thresholds
+    if (Hb > 12.0) {
+      status = "Normal";
+    } 
+    else if (Hb > 10.0) {
+      status = "Mild Anemia";
+    } 
+    else if (Hb > 7.0) {
+      status = "Moderate";
+    } 
+    else {
+      status = "Severe";
+    }
+
+    Serial.print("Avg Red: "); Serial.println(avgRed);
+    Serial.print("Avg IR: "); Serial.println(avgIR);
+    Serial.print("Ratio: "); Serial.println(R);
+    Serial.print("Hb: ");
+    Serial.print("Status: ");
+    Serial.println(status);
+    Serial.println(Hb);
+
+    // Display ratio
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 20);
+    display.print("Hb: ");
+    display.print(Hb, 2);
+    display.println(" g/dL");
+    display.print("R: ");
+    display.println(R, 4);
+    display.print("Status: ");
+    display.println(status);
+    display.display();
+
+    delay(10000);
+
+    showMessage("Push button to\nmeasure Hb");
+  }
+}
